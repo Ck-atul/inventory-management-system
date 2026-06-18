@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 
 import models, schemas
@@ -103,7 +103,7 @@ def delete_customer(id: int, db: Session = Depends(get_db)):
 # --- Orders ---
 @app.get("/orders", response_model=List[schemas.OrderResponse])
 def get_orders(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    orders = db.query(models.Order).offset(skip).limit(limit).all()
+    orders = db.query(models.Order).options(joinedload(models.Order.items)).offset(skip).limit(limit).all()
     return orders
 
 @app.post("/orders", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED)
@@ -143,7 +143,7 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
 
 @app.get("/orders/{id}", response_model=schemas.OrderResponse)
 def get_order(id: int, db: Session = Depends(get_db)):
-    order = db.query(models.Order).filter(models.Order.id == id).first()
+    order = db.query(models.Order).options(joinedload(models.Order.items)).filter(models.Order.id == id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
